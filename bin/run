@@ -1,0 +1,5 @@
+#!/usr/bin/python
+
+from music_player.ui import Player, main
+player = Player()
+main()
