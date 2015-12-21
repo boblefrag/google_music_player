@@ -7,7 +7,7 @@ INSTALL
 -------
 .. code::
    
-    apt-get install python-gtk virtualenv
+    apt-get install python-gtk virtualenv vlc
     virtualenv venv --system-site-packages
     source venv/bin/activate
     pip install -U setuptools
