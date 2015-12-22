@@ -1,8 +1,11 @@
 0.3 (unreleased)
 ----------------
 
-- Nothing changed yet.
-
+- Updated the ui. Now clearer
+- Added Thumbnail of album
+- add previous and next button
+- now playing song is selected
+- refactoring
 
 0.2 (2015-12-22)
 ----------------

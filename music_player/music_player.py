@@ -1,10 +1,9 @@
-import threading
-import time
 import vlc
 import gtk
 import urllib2
 from gmusicapi.utils import utils
 from uuid import getnode as getmac
+from vlc import callbackmethod
 
 mac_int = getmac()
 if (mac_int >> 40) % 2:
@@ -15,65 +14,63 @@ if (mac_int >> 40) % 2:
 android_id = utils.create_mac_string(mac_int)
 android_id = android_id.replace(':', '')
 
-class MusicPlayer(threading.Thread):
+@callbackmethod
+def SongFinished(self, player):
+    player.api.increment_song_playcount(player.store[player.index][-1])
+    player.win.set_index(player.win.get_index() + 1)
+    player.play()
 
-    def __init__(self, api, win, index, tree):
+
+class MusicPlayer(object):
+
+    def __init__(self, api, win, tree):
+
         super(MusicPlayer, self).__init__()
         self.win = win
         self.store = win.liststore
-        self.index = index
         self.tree = tree
-        self.stoprequest = threading.Event()
         self.api = api
+        self.p = vlc.MediaPlayer()
 
-    def join(self, timeout=None):
-        self.stoprequest.set()
+    def make_label(self, data):
+        artist = data[0]
+        album = data[1]
+        song = data[2]
+        text = "{}-{}-{}".format(
+            song,
+            album,
+            artist)
+        if len(text) > 50:
+            text = text[:50] + '...'
+        self.win.song_label.set_text(
+            text
+                )
+    def _play(self, data):
         self.p.stop()
-        super(MusicPlayer, self).join(timeout)
+        song = self.api.get_stream_url(
+            data[3],
+            device_id=android_id)
+        self.p = vlc.MediaPlayer(song)
+        self.p.play()
+        self.p.event = self.p.event_manager()
+        self.p.event.event_attach(
+            vlc.EventType.MediaPlayerEndReached, SongFinished, self)
 
     def play(self):
-
+        selection = self.tree.get_selection()
+        selection.select_path(self.win.get_index())
         try:
-            artist = self.store[self.index][0]
-            album = self.store[self.index][1]
-            song = self.store[self.index][2]
-            text = "{}-{}-{}".format(
-                    song,
-                    album,
-                    artist)
-            if len(text) > 50:
-                text = text[:50] + '...'
-            self.win.song_label.set_text(
-                text
-                )
-            song = self.api.get_stream_url(
-                self.store[self.index][3],
-                device_id=android_id)
-            self.p=vlc.MediaPlayer(song)
-            self.p.play()
-            response=urllib2.urlopen(self.store[self.index][4])
-            loader=gtk.gdk.PixbufLoader()
-            loader.set_size(50,50)
-            loader.write(response.read())
-            loader.close()
-            self.win.album_pic.set_from_pixbuf(loader.get_pixbuf())
-            self.watch(self.index)
+            data = self.win.liststore[self.win.get_index()]
         except IndexError:
             return
+        self._play(data)
+        self.make_label(data)
+        self.create_thumb()
 
-
-    def watch(self, index):
-        while True:
-            state = self.p.get_state()
-
-            if state == vlc.State.Ended:
-                self.api.increment_song_playcount(self.store[self.index][-1])
-                self.index += 1
-                self.play()
-            elif state == vlc.State.Stopped:
-                break
-            else:
-                time.sleep(1)
-
-    def run(self):
-        self.play()
+    def create_thumb(self):
+        response=urllib2.urlopen(self.store[self.win.get_index()][4])
+        loader=gtk.gdk.PixbufLoader()
+        loader.set_size(200,200)
+        loader.write(response.read())
+        loader.close()
+        self.win.album_pic.set_from_pixbuf(loader.get_pixbuf())

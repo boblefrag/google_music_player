@@ -8,14 +8,15 @@ import gobject
 from gmusicapi import Mobileclient
 from music_player import MusicPlayer
 from widget import (SourcePane, ArtistPane, AlbumPane, SongPane,
-                    get_player_control_toolbar, MainWindow, Login)
+                    get_player_control_toolbar, MainWindow, Login,
+                    SongListStore)
 
 api = Mobileclient()
 
 gobject.threads_init()
 
 
-class Player:
+class Player(object):
 
     def __init__(self):
         self.window = MainWindow(gtk.WINDOW_TOPLEVEL)
@@ -43,37 +44,42 @@ class Player:
         self.window.connect("delete_event", self.delete_event)
 
         # create the liststores (artist, album, songs)
-        self.make_stores()
+        self.create_stores()
         self.refresh()
-        # create the TreeView using liststore
+        self.create_base_panes()
+        self.create_autocomplete()
+        self.create_label_image()
+        self.create_main_ui()
+        self.source_pane.connect("row-activated", self.expand)
+        self.treeview.connect("row-activated", self.on_clicked)
+        self.album_pane.get_selection().connect("changed", self.filter_album)
+        self.artist_pane.get_selection().connect("changed", self.filter_artist)
 
+        self.t = MusicPlayer(api, self, self.treeview)
+
+    def create_base_panes(self):
         self.source_pane = SourcePane(self.source_store)
         self.source_scrolled_window = gtk.ScrolledWindow()
-
+        self.source_scrolled_window.set_policy(
+            gtk.POLICY_NEVER,
+            gtk.POLICY_ALWAYS)
         self.source_scrolled_window.add(self.source_pane)
+
 
         self.artist_pane = ArtistPane(self.artist_store)
         self.artist_scrolled_window = gtk.ScrolledWindow()
-
         self.artist_scrolled_window.add(self.artist_pane)
 
         self.album_pane = AlbumPane(self.album_store)
         self.album_scrolled_window = gtk.ScrolledWindow()
+
         self.album_scrolled_window.add(self.album_pane)
 
         self.treeview = SongPane(self.liststore)
         self.scrolled_window = gtk.ScrolledWindow()
         self.scrolled_window.add(self.treeview)
 
-        self.main_hbox = gtk.HBox()
-        self.hbox = gtk.HBox()
-        self.hbox.add(self.source_scrolled_window)
-        self.hbox.add(self.artist_scrolled_window)
-        self.hbox.add(self.album_scrolled_window)
-
-        self.menu_hbox = gtk.HBox()
-        self.song_label = gtk.Label("")
-
+    def create_autocomplete(self):
         self.completion_store = gtk.ListStore(str, str, str)
         completion = gtk.EntryCompletion()
         completion.set_model(self.completion_store)
@@ -82,26 +88,48 @@ class Player:
         self.search.set_completion(completion)
         self.search.connect("key-press-event", self.autocomplete)
         self.search.connect("activate", self.get_selection)
+
+    def create_label_image(self):
+        self.song_label = gtk.Label("")
         self.album_pic = gtk.Image()
-        self.menu_hbox.pack_start(self.album_pic)
-        self.menu_hbox.pack_start(get_player_control_toolbar(self))
-        self.menu_hbox.pack_start(self.song_label)
-        self.menu_hbox.pack_start(self.search)
 
+    def create_main_ui(self):
+        self.box = gtk.VBox()
+        self.menubox = gtk.HBox()
+        self.filters_box = gtk.HBox()
+        self.main_box = gtk.HBox()
+        self.right_box = gtk.VBox()
+
+        # create the top menu bar
+        self.menubox.pack_start(get_player_control_toolbar(self))
+        self.menubox.pack_start(self.song_label)
+        self.menubox.pack_end(self.search)
+
+        # create the filter box
+        self.filters_box.pack_start(self.artist_scrolled_window)
+        self.filters_box.pack_start(self.album_scrolled_window)
+
+        # create the right box
+        self.right_box.pack_start(self.source_scrolled_window)
+        self.right_box.pack_start(self.album_pic, expand=False)
+
+        # create the vbox to hold filters and songs
         self.vbox = gtk.VBox()
-        self.vbox.pack_start(self.menu_hbox, expand=False)
-        self.vbox.add(self.hbox)
+        self.vbox.pack_start(self.filters_box)
+        self.vbox.pack_start(self.scrolled_window)
 
-        self.vbox.add(self.scrolled_window)
+        # add the rigth box to the main box
+        self.main_box.pack_start(self.right_box, expand=False)
+        # add the filters and songs to the main box
+        self.main_box.pack_start(self.vbox)
 
-        self.window.add(self.vbox)
+        # add the menu to the window
+        self.box.pack_start(self.menubox, expand=False)
+        # add main box to the window
+        self.box.add(self.main_box)
 
+        self.window.add(self.box)
         self.window.show_all()
-
-        self.source_pane.connect("row-activated", self.expand)
-        self.treeview.connect("row-activated", self.on_clicked)
-        self.album_pane.get_selection().connect("changed", self.filter_album)
-        self.artist_pane.get_selection().connect("changed", self.filter_artist)
 
     def get_selection(self, widget, *args):
         text = widget.get_text()
@@ -109,7 +137,7 @@ class Player:
         tracks = None
         for row in self.completion_store:
             if row[0] == text:
-                name, obj_id, obj_type = row[0], row[1], row[2]
+                obj_id, obj_type = row[1], row[2]
                 break
         if obj_type == "artist":
             tracks = api.get_artist_info(
@@ -144,13 +172,11 @@ class Player:
 
     # close the window and quit
     def delete_event(self, widget, event, data=None):
-        if self.t:
-            self.t.join()
         gtk.main_quit()
         return False
 
-    def make_stores(self):
-        self.liststore = gtk.ListStore(str, str, str, str, str)
+    def create_stores(self):
+        self.liststore = SongListStore(str, str, str, str, str)
         self.album_store = gtk.ListStore(str)
         self.artist_store = gtk.ListStore(str)
         self.source_store = gtk.TreeStore(str)
@@ -215,27 +241,37 @@ class Player:
 
     def on_clicked(self, widget, index, item):
         index = index[0]
-        self.play(index= index)
+        self.play()
 
-    def play(self, index=None):
-        if self.t:
-            self.t.join()
+    def play(self):
         selection = self.treeview.get_selection()
         try:
             index = selection.get_selected_rows()[1][0][0]
         except IndexError:
             index = 0
-        self.t = MusicPlayer(api, self, index, self.treeview)
-        self.t.start()
+        self.liststore.set_index(index)
+        self.t.play()
+
+    def get_index(self):
+        return self.liststore.get_index()
+
+    def set_index(self, index):
+        return self.liststore.set_index(index)
+
+    def previous(self):
+        if self.get_index() > 0:
+            self.set_index(self.get_index() - 1)
+            self.t.play()
+
+    def next(self):
+        if self.get_index() +1 < self.liststore:
+            self.set_index(self.get_index() + 1)
+            self.t.play()
+
 
     def pause(self):
         if self.t:
             self.t.p.pause()
-
-    def stop(self):
-        if self.t:
-            self.t.p.stop()
-            self.t.join()
 
     def expand(self, widget, index, item):
         index = index

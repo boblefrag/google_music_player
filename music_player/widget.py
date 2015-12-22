@@ -2,16 +2,45 @@ import gtk
 import os
 from gettext import gettext as _
 
+class SongListStore(gtk.ListStore):
+
+    def __init__(self, *args, **kwargs):
+        super(SongListStore, self).__init__(*args, **kwargs)
+        self.index = 0
+
+    def clear(self, *args, **kwargs):
+        super(SongListStore, self).clear(*args, **kwargs)
+        self.index = 0
+
+    def get_index(self):
+        return self.index
+
+    def set_index(self, index):
+        self.index = index
+        return self.index
+
 def get_player_control_toolbar(win):
     """Return a player control toolbar
     """
     tb = gtk.Toolbar()
     tb.set_style(gtk.TOOLBAR_ICONS)
     for text, tooltip, stock, callback in (
-            (_("Play"), _("Play"), gtk.STOCK_MEDIA_PLAY, lambda b: win.play()),
-            (_("Pause"), _("Pause"), gtk.STOCK_MEDIA_PAUSE, lambda b: win.pause()),
-            (_("Stop"), _("Stop"), gtk.STOCK_MEDIA_STOP, lambda b: win.stop()),
-            (_("Refresh"),_("Refresh"), gtk.STOCK_REFRESH, lambda b: win.refresh())
+
+            (_("Previous"), _("Previous"),
+             gtk.STOCK_MEDIA_PREVIOUS, lambda b: win.previous()),
+
+            (_("Play"), _("Play"),
+             gtk.STOCK_MEDIA_PLAY,lambda b: win.play()),
+
+            (_("Pause"), _("Pause"),
+             gtk.STOCK_MEDIA_PAUSE, lambda b: win.pause()),
+
+            (_("Next"), _("Next"),
+             gtk.STOCK_MEDIA_NEXT, lambda b: win.next()),
+
+            (_("Refresh"),_("Refresh"),
+             gtk.STOCK_REFRESH, lambda b: win.refresh())
+
             ):
         b=gtk.ToolButton(stock)
         b.set_tooltip_text(tooltip)
@@ -29,7 +58,7 @@ class SourcePane(gtk.TreeView):
         self.set_search_column(0)
         self.append_column(self.tvcolumn)
         self.cell = gtk.CellRendererText()
-        self.tvcolumn.pack_start(self.cell, True)
+        self.tvcolumn.pack_start(self.cell, False)
         self.tvcolumn.set_attributes(self.cell, text=0)
         self.tvcolumn.set_clickable(True)
         self.tvcolumn.set_sort_column_id(0)
@@ -44,7 +73,7 @@ class ArtistPane(gtk.TreeView):
         self.set_search_column(0)
         self.append_column(self.tvcolumn)
         self.cell = gtk.CellRendererText()
-        self.tvcolumn.pack_start(self.cell, True)
+        self.tvcolumn.pack_start(self.cell, False)
         self.tvcolumn.set_attributes(self.cell, text=0)
         self.tvcolumn.set_clickable(True)
         self.tvcolumn.set_sort_column_id(0)
@@ -61,7 +90,7 @@ class AlbumPane(gtk.TreeView):
         self.tvcolumn.set_clickable(True)
         self.append_column(self.tvcolumn)
         self.cell = gtk.CellRendererText()
-        self.tvcolumn.pack_start(self.cell, True)
+        self.tvcolumn.pack_start(self.cell, False)
         self.tvcolumn.set_attributes(self.cell, text=0)
         self.set_reorderable(True)
         self.tvcolumn.set_sort_column_id(0)
@@ -85,11 +114,11 @@ class SongPane(gtk.TreeView):
         self.cell = gtk.CellRendererText()
         self.cell1 = gtk.CellRendererText()
         self.cell2 = gtk.CellRendererText()
-        self.tvcolumn.pack_start(self.cell, True)
+        self.tvcolumn.pack_start(self.cell, False)
         self.tvcolumn.set_attributes(self.cell, text=2)
-        self.tvcolumn1.pack_start(self.cell1, True)
+        self.tvcolumn1.pack_start(self.cell1, False)
         self.tvcolumn1.set_attributes(self.cell1, text=1)
-        self.tvcolumn2.pack_start(self.cell2, True)
+        self.tvcolumn2.pack_start(self.cell2, False)
         self.tvcolumn2.set_attributes(self.cell2, text=0)
         self.set_reorderable(True)
 

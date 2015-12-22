@@ -5,11 +5,23 @@ A GTK music player based on google music API
 
 INSTALL
 -------
+
 .. code::
+
     apt-get install python-gtk virtualenv vlc
     virtualenv venv --system-site-packages
     source venv/bin/activate
     pip install googlemusicplayer
-   run
+    run
 
 enjoy! ;)
+
+FEATURES
+--------
+
+- play library
+- playlist
+- radios
+
+- get album covers
+- play/pause/previous/next
