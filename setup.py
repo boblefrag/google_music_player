@@ -22,7 +22,7 @@ setup(
     description='a GTK music player using google music API',
     long_description=README,
     author='Yohann Gabory',
-    email="yohann@gabory.fr",
+    author_email="yohann@gabory.fr",
     LICENCE = "BSD",
     CLASSIFIERS = [
         'Programming Language :: Python :: 2.7',
