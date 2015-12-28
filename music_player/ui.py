@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+
 import os
 import pygtk
 pygtk.require('2.0')
@@ -14,7 +15,7 @@ from widget import (SourcePane, ArtistPane, AlbumPane, SongPane,
 api = Mobileclient()
 
 gobject.threads_init()
-
+from lastfm import AudioScrobbler
 
 class Player(object):
 
@@ -27,12 +28,22 @@ class Player(object):
         path = os.path.expanduser("~/.config/google_music_player")
         while True:
             with open(path, "r") as fd:
-                login, password = fd.readlines()
+                auth = fd.readlines()
+                login, password = auth[:2]
                 logged = api.login(
                     login.strip(),
                     password.strip(),
                     Mobileclient.FROM_MAC_ADDRESS)
                 if logged:
+                    last_fm = None
+                    if len(auth) > 2:
+                        try:
+                            last_fm = AudioScrobbler()
+                            last_fm.login(*auth[2:])
+                        except Exception as e:
+                            print e
+                    else:
+                        print "No Last"
                     break
                 else:
                     message = Login(parent=self.window)
@@ -50,12 +61,13 @@ class Player(object):
         self.create_autocomplete()
         self.create_label_image()
         self.create_main_ui()
+
         self.source_pane.connect("row-activated", self.expand)
         self.treeview.connect("row-activated", self.on_clicked)
         self.album_pane.get_selection().connect("changed", self.filter_album)
         self.artist_pane.get_selection().connect("changed", self.filter_artist)
 
-        self.t = MusicPlayer(api, self, self.treeview)
+        self.t = MusicPlayer(api, self, self.treeview, lastfm=last_fm)
 
     def create_base_panes(self):
         self.source_pane = SourcePane(self.source_store)

@@ -25,3 +25,17 @@ FEATURES
 
 - get album covers
 - play/pause/previous/next
+
+NEW! LASTFM integration
+-----------------------
+
+If you have a lastfm account and want to scrobble your tracks, please
+add to your ~/.config/google_music_player your lastfm username and
+password:
+
+.. code::
+
+   googleemail@gmail.com
+   google_password
+   lastfm_username
+   lastfm_passsword
