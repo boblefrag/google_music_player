@@ -1,0 +1,8 @@
+*~
+*.html
+*.pyc
+*.egg-info
+*.egg
+venv
+build
+dist
