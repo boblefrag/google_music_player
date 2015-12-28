@@ -219,6 +219,8 @@ class Player(object):
 
     def filter_album(self, selection):
         model, index = selection.get_selected_rows()
+        if len(index) == 0:
+            return
         index = index[0][0]
         album = self.album_store[index][0]
         self.liststore.clear()
