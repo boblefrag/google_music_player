@@ -202,12 +202,12 @@ class Player(object):
             self.songs = songs
         for store in [self.liststore, self.album_store, self.artist_store]:
             store.clear()
-        for album in set([song['album'] for song in self.songs]):
+        for album in sorted(set([song['album'] for song in self.songs])):
             self.album_store.append([album])
 
-        for artist in set([song['artist'] for song in self.songs]):
+        for artist in sorted(set([song['artist'] for song in self.songs])):
             self.artist_store.append([artist])
-
+        self.songs = sorted(self.songs, key=lambda k: k['title'])
         for song in self.songs:
             self.liststore.append(
                 [song["artist"],
@@ -292,12 +292,14 @@ class Player(object):
         if len(index) == 1:
             if menu[0] == "playlists":
                 self.playlists = api.get_all_user_playlist_contents()
+                self.playlists = sorted(self.playlists, key=lambda k: k['name'])
                 for playlist in self.playlists:
                     self.source_store.append(
                         self.source_store.get_iter(1),
                         [playlist["name"]])
             if menu[0]== "radios":
                 self.radios = api.get_all_stations()
+                self.radios = sorted(self.radios, key=lambda k: k['name'])
                 for radio in self.radios:
                     self.source_store.append(
                         self.source_store.get_iter(2),
