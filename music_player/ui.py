@@ -96,12 +96,16 @@ class Player(object):
         self.right_menu = gtk.Menu()
         like = gtk.MenuItem("Love")
         dislike = gtk.MenuItem("Dislike")
+        clear = gtk.MenuItem("Clear rating")
         self.right_menu.append(like)
         self.right_menu.append(dislike)
+        self.right_menu.append(clear)
         like.connect("activate", self.on_like, "like")
         dislike.connect("activate", self.on_like, "dislike")
+        clear.connect("activate", self.on_like, "clear")
         like.show()
         dislike.show()
+        clear.show()
 
     def create_autocomplete(self):
         self.completion_store = gtk.ListStore(str, str, str)
@@ -200,12 +204,31 @@ class Player(object):
         return False
 
     def create_stores(self):
-        self.liststore = SongListStore(str, str, str, str, str, str)
+        self.liststore = SongListStore(str, str, str, str, str, str, str)
         self.album_store = gtk.ListStore(str)
         self.artist_store = gtk.ListStore(str)
         self.source_store = gtk.TreeStore(str)
         for elem in ["library", "playlists", "radios"]:
             self.source_store.append(None, [elem])
+
+    def filter_songs(self, filter_key=None, filter_term=None):
+        for song in self.songs:
+            if not filter_key or song[filter_key] == filter_term:
+                rating = song.get('rating')
+                if rating == '5':
+                    rating = '+1'
+                elif rating == '1':
+                    rating = '-1'
+                else:
+                    rating = None
+                self.liststore.append(
+                    [song["artist"],
+                     song['album'],
+                     song["title"],
+                     song['id'],
+                     song['albumArtRef'][0]['url'],
+                     song["storeId"],
+                     rating])
 
     def refresh(self, songs=None):
         if songs is None:
@@ -221,15 +244,7 @@ class Player(object):
         for artist in sorted(set([song['artist'] for song in self.songs])):
             self.artist_store.append([artist])
         self.songs = sorted(self.songs, key=lambda k: k['title'])
-
-        for song in self.songs:
-            self.liststore.append(
-                [song["artist"],
-                 song['album'],
-                 song["title"],
-                 song['id'],
-                 song['albumArtRef'][0]['url'],
-                 song["storeId"]])
+        self.filter_songs()
 
 
     def filter_album(self, selection):
@@ -239,15 +254,7 @@ class Player(object):
         index = index[0][0]
         album = self.album_store[index][0]
         self.liststore.clear()
-        for song in self.songs:
-            if song['album'] == album:
-                self.liststore.append(
-                    [song["artist"],
-                     song['album'],
-                     song["title"],
-                     song['id'],
-                     song['albumArtRef'][0]['url'],
-                     song["storeId"]])
+        self.filter_songs('album', album)
 
     def filter_artist(self, selection):
         model, index = selection.get_selected_rows()
@@ -255,16 +262,10 @@ class Player(object):
         artist = self.artist_store[index][0]
         self.liststore.clear()
         album_songs = []
+        self.filter_songs('artist', artist)
         for song in self.songs:
             if song['artist'] == artist:
                 album_songs.append(song['album'])
-                self.liststore.append(
-                    [song["artist"],
-                     song['album'],
-                     song["title"],
-                     song['id'],
-                     song['albumArtRef'][0]['url'],
-                     song["storeId"]])
 
         self.album_store.clear()
         for album in set(album_songs):
@@ -286,12 +287,16 @@ class Player(object):
         song = api.get_track_info(
             unicode(self.liststore[self.liststore.get_index()][5])
         )
+        rating = ''
         if event == 'like':
-            song['rating'] = '5'
+            song['rating'], rating = '5', '+1'
         elif event == 'dislike':
             # dislike
-            song['rating'] = '1'
+            song['rating'], rating = '1', '-1'
+        elif event == "clear":
+            song['rating'], rating = '0', None
         api.change_song_metadata(song)
+        self.liststore[index][6] = rating # update the ui
 
     def play(self):
         selection = self.treeview.get_selection()

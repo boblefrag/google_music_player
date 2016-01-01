@@ -99,27 +99,42 @@ class SongPane(gtk.TreeView):
 
     def __init__(self, *args, **kwargs):
         super(SongPane, self).__init__(*args, **kwargs)
-        self.tvcolumn = gtk.TreeViewColumn('Title')
-        self.tvcolumn1 = gtk.TreeViewColumn('Album')
-        self.tvcolumn2 = gtk.TreeViewColumn('Artist')
+        self.rating_column = gtk.TreeViewColumn('rating')
+        self.title_column = gtk.TreeViewColumn('Title')
+        self.album_column = gtk.TreeViewColumn('Album')
+        self.artist_column = gtk.TreeViewColumn('Artist')
         self.set_search_column(0)
 
-        self.tvcolumn.set_sort_column_id(0)
-        self.tvcolumn1.set_sort_column_id(0)
-        self.tvcolumn.set_clickable(True)
+        self.rating_column.set_sort_column_id(6)
+        self.title_column.set_sort_column_id(2)
+        self.album_column.set_sort_column_id(1)
+        self.artist_column.set_sort_column_id(0)
 
-        self.append_column(self.tvcolumn)
-        self.append_column(self.tvcolumn1)
-        self.append_column(self.tvcolumn2)
-        self.cell = gtk.CellRendererText()
-        self.cell1 = gtk.CellRendererText()
-        self.cell2 = gtk.CellRendererText()
-        self.tvcolumn.pack_start(self.cell, False)
-        self.tvcolumn.set_attributes(self.cell, text=2)
-        self.tvcolumn1.pack_start(self.cell1, False)
-        self.tvcolumn1.set_attributes(self.cell1, text=1)
-        self.tvcolumn2.pack_start(self.cell2, False)
-        self.tvcolumn2.set_attributes(self.cell2, text=0)
+        for column in [self.rating_column,
+                       self.title_column,
+                       self.album_column,
+                       self.artist_column]:
+
+            column.set_resizable(True)
+            column.set_expand(False)
+            self.append_column(column)
+
+        self.rating = gtk.CellRendererText()
+        self.title = gtk.CellRendererText()
+        self.album = gtk.CellRendererText()
+        self.artist = gtk.CellRendererText()
+
+        self.rating_column.pack_start(self.rating, False)
+        self.rating_column.set_attributes(self.rating, text=6)
+
+        self.title_column.pack_start(self.title, False)
+        self.title_column.set_attributes(self.title, text=2)
+
+        self.album_column.pack_start(self.album, False)
+        self.album_column.set_attributes(self.album, text=1)
+
+        self.artist_column.pack_start(self.artist, False)
+        self.artist_column.set_attributes(self.artist, text=0)
         self.set_reorderable(True)
 
 
