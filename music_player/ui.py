@@ -61,9 +61,10 @@ class Player(object):
         self.create_autocomplete()
         self.create_label_image()
         self.create_main_ui()
-
+        self.create_right_click_menu()
         self.source_pane.connect("row-activated", self.expand)
         self.treeview.connect("row-activated", self.on_clicked)
+        self.treeview.connect('button-press-event' , self.on_right_click)
         self.album_pane.get_selection().connect("changed", self.filter_album)
         self.artist_pane.get_selection().connect("changed", self.filter_artist)
 
@@ -90,6 +91,17 @@ class Player(object):
         self.treeview = SongPane(self.liststore)
         self.scrolled_window = gtk.ScrolledWindow()
         self.scrolled_window.add(self.treeview)
+
+    def create_right_click_menu(self):
+        self.right_menu = gtk.Menu()
+        like = gtk.MenuItem("Love")
+        dislike = gtk.MenuItem("Dislike")
+        self.right_menu.append(like)
+        self.right_menu.append(dislike)
+        like.connect("activate", self.on_like, "like")
+        dislike.connect("activate", self.on_like, "dislike")
+        like.show()
+        dislike.show()
 
     def create_autocomplete(self):
         self.completion_store = gtk.ListStore(str, str, str)
@@ -188,7 +200,7 @@ class Player(object):
         return False
 
     def create_stores(self):
-        self.liststore = SongListStore(str, str, str, str, str)
+        self.liststore = SongListStore(str, str, str, str, str, str)
         self.album_store = gtk.ListStore(str)
         self.artist_store = gtk.ListStore(str)
         self.source_store = gtk.TreeStore(str)
@@ -198,6 +210,7 @@ class Player(object):
     def refresh(self, songs=None):
         if songs is None:
             self.songs = api.get_all_songs()
+
         else:
             self.songs = songs
         for store in [self.liststore, self.album_store, self.artist_store]:
@@ -208,13 +221,15 @@ class Player(object):
         for artist in sorted(set([song['artist'] for song in self.songs])):
             self.artist_store.append([artist])
         self.songs = sorted(self.songs, key=lambda k: k['title'])
+
         for song in self.songs:
             self.liststore.append(
                 [song["artist"],
                  song['album'],
                  song["title"],
                  song['id'],
-                 song['albumArtRef'][0]['url']])
+                 song['albumArtRef'][0]['url'],
+                 song["storeId"]])
 
 
     def filter_album(self, selection):
@@ -231,7 +246,8 @@ class Player(object):
                      song['album'],
                      song["title"],
                      song['id'],
-                     song['albumArtRef'][0]['url']])
+                     song['albumArtRef'][0]['url'],
+                     song["storeId"]])
 
     def filter_artist(self, selection):
         model, index = selection.get_selected_rows()
@@ -247,7 +263,8 @@ class Player(object):
                      song['album'],
                      song["title"],
                      song['id'],
-                     song['albumArtRef'][0]['url']])
+                     song['albumArtRef'][0]['url'],
+                     song["storeId"]])
 
         self.album_store.clear()
         for album in set(album_songs):
@@ -256,6 +273,25 @@ class Player(object):
     def on_clicked(self, widget, index, item):
         index = index[0]
         self.play()
+
+    def on_right_click(self, widget, event):
+        if event.button == 3:
+            self.right_menu.popup(None, None, None, event.button, event.time)
+
+    def on_like(self, widget, event):
+
+        selection = self.treeview.get_selection()
+        index = selection.get_selected_rows()[1][0][0]
+        self.liststore.set_index(index)
+        song = api.get_track_info(
+            unicode(self.liststore[self.liststore.get_index()][5])
+        )
+        if event == 'like':
+            song['rating'] = '5'
+        elif event == 'dislike':
+            # dislike
+            song['rating'] = '1'
+        api.change_song_metadata(song)
 
     def play(self):
         selection = self.treeview.get_selection()
