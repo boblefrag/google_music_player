@@ -3,6 +3,9 @@ Google Music Player
 
 A GTK music player based on google music API
 
+.. image:: googlemusicplayer_screenshot.png
+   :scale: 50 %
+
 INSTALL
 -------
 
