@@ -16,7 +16,7 @@ os.chdir(os.path.normpath(os.path.join(os.path.abspath(__file__), os.pardir)))
 
 setup(
     name='googlemusicplayer',
-    version='0.5',
+    version='0.6.dev0',
     packages=['music_player'],
     include_package_data=True,
     description='a GTK music player using google music API',
