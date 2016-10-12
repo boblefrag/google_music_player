@@ -181,7 +181,7 @@ class Player(object):
 
     def autocomplete(self, widget, key):
         string = u"{}{}".format(self.search.get_text(), key.string)
-        results = api.search_all_access(string, max_results=10)
+        results = api.search(string, max_results=10)
         self.completion_store.clear()
         if results.get('artist_hits'):
             for artist in results.get('artist_hits'):
