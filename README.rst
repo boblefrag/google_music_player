@@ -15,7 +15,7 @@ INSTALL
     virtualenv venv --system-site-packages
     source venv/bin/activate
     pip install googlemusicplayer
-    run
+    googlemusic
 
 enjoy! ;)
 

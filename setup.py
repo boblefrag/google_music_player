@@ -34,5 +34,5 @@ setup(
         'python-vlc',
         ' pyasn1>=0.1.8'
     ],
-    scripts=['bin/run'],
+    scripts=['bin/googlemusic'],
 )
